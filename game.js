@@ -59,12 +59,19 @@ const camera = {
     y: 0,
     width: 1280,
     height: 720,
+    targetX: 0,
+    targetY: 0,
+    smoothness: 0.1, // Adjust this value to change how smooth the camera follows (0.1 = very smooth, 1 = instant)
     
     // Update camera position to follow player
     update: function() {
-        // Center the camera on the player
-        this.x = Math.floor(player.x + (player.width / 2) - (this.width / 2));
-        this.y = Math.floor(player.y + (player.height / 2) - (this.height / 2));
+        // Calculate target position (centered on player)
+        this.targetX = Math.floor(player.x + (player.width / 2) - (this.width / 2));
+        this.targetY = Math.floor(player.y + (player.height / 2) - (this.height / 2));
+        
+        // Smoothly move camera towards target
+        this.x += (this.targetX - this.x) * this.smoothness;
+        this.y += (this.targetY - this.y) * this.smoothness;
         
         // Make sure the camera doesn't go outside the map boundaries
         this.x = Math.max(0, Math.min(this.x, gameMap[0].length * TILE_SIZE - this.width));
