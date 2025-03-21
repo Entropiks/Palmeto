@@ -3,42 +3,44 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 // Game constants
-const TILE_SIZE = 32;
-const GRAVITY = 0.5;
-const JUMP_FORCE = -12;
-const MOVEMENT_SPEED = 5;
+const TILE_SIZE = 16;
+const GRAVITY = 0.125;
+const JUMP_FORCE = -4;
+const MOVEMENT_SPEED = 1.25;
 const backgroundImage = new Image();
 backgroundImage.src = './assets/gamebg.png'; // Replace with your image path
 
-// Game map (0 = empty, 1 = solid block)
-// Now with borders around the entire map (top, bottom, left, right)
-let gameMap = [
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-];
+// New tilemap constants
+const SPRITESHEET_COLS = 8;
+const SPRITESHEET_ROWS = 6;
+
+// Load tilemap assets
+const tileAtlas = new Image();
+tileAtlas.src = './assets/spritesheet.png'; // Update with your spritesheet path
+
+// Load and parse map data
+let mapData = null;
+fetch('./maps/map.json')
+    .then(response => response.json())
+    .then(data => {
+        mapData = data;
+        console.log('Map data loaded successfully');
+    })
+    .catch(error => console.error('Error loading map:', error));
+
+// Add these near the top with other asset loading
+const playerIdleAtlas = new Image();
+playerIdleAtlas.src = './assets/characters/knight/idle_spritesheet.png';
+
+// Load and parse idle animation data
+let playerIdleData = null;
+fetch('./assets/characters/knight/idle_map.json')
+    .then(response => response.json())
+    .then(data => {
+        playerIdleData = data;
+        console.log('Player idle animation data loaded successfully');
+    })
+    .catch(error => console.error('Error loading player idle animation:', error));
 
 // Local player data
 const player = {
@@ -50,52 +52,63 @@ const player = {
     velX: 0,
     velY: 0,
     jumping: false,
-    color: 'red'
+    color: 'red',
+    // Update animation properties
+    animationFrame: 0,
+    frameCounter: 0,
+    frameDuration: 11, // Increased from 8 to 15 to slow down the animation
+    facingLeft: false
 };
+
+// I'll edit the game dimensions and camera setup
+const GAME_WIDTH = 640;  // Reduced from 1280 to be 40 tiles wide (640/16)
+const GAME_HEIGHT = 360; // Reduced from 720 to maintain 16:9 ratio (about 22 tiles high)
+let scale = 1;           // Current scale factor
+let offsetX = 0;         // Horizontal offset to center the game
+let offsetY = 0;         // Vertical offset to center the game
 
 // Camera system
 const camera = {
     x: 0,
     y: 0,
-    width: 1280,
-    height: 720,
+    width: GAME_WIDTH,
+    height: GAME_HEIGHT,
     targetX: 0,
     targetY: 0,
-    smoothness: 0.1, // Adjust this value to change how smooth the camera follows (0.1 = very smooth, 1 = instant)
+    smoothness: 0.1,
     
-    // Update camera position to follow player
     update: function() {
-        // Calculate target position (centered on player)
-        this.targetX = Math.floor(player.x + (player.width / 2) - (this.width / 2));
-        this.targetY = Math.floor(player.y + (player.height / 2) - (this.height / 2));
+        // Center camera more tightly on player
+        this.targetX = Math.floor(player.x - (this.width / 2) + (player.width / 2));
+        this.targetY = Math.floor(player.y - (this.height / 2) + (player.height / 2));
         
-        // Smoothly move camera towards target
-        this.x += (this.targetX - this.x) * this.smoothness;
-        this.y += (this.targetY - this.y) * this.smoothness;
+        // Round the target positions to prevent sub-pixel movement
+        this.targetX = Math.round(this.targetX);
+        this.targetY = Math.round(this.targetY);
         
-        // Make sure the camera doesn't go outside the map boundaries
-        this.x = Math.max(0, Math.min(this.x, gameMap[0].length * TILE_SIZE - this.width));
-        this.y = Math.max(0, Math.min(this.y, gameMap.length * TILE_SIZE - this.height));
+        // Smoothly move camera towards target with rounded result
+        this.x = Math.round(this.x + (this.targetX - this.x) * this.smoothness);
+        this.y = Math.round(this.y + (this.targetY - this.y) * this.smoothness);
+        
+        // Make sure the camera doesn't go outside the map boundaries using mapData
+        if (mapData) {
+            const mapWidth = mapData.mapWidth * TILE_SIZE;
+            const mapHeight = mapData.mapHeight * TILE_SIZE;
+            this.x = Math.max(0, Math.min(this.x, mapWidth - this.width));
+            this.y = Math.max(0, Math.min(this.y, mapHeight - this.height));
+        }
     }
 };
 
-// Add these constants at the top
-const GAME_WIDTH = 1280;  // Base game width
-const GAME_HEIGHT = 720;  // Base game height (16:9 ratio)
-let scale = 1;           // Current scale factor
-let offsetX = 0;         // Horizontal offset to center the game
-let offsetY = 0;         // Vertical offset to center the game
-
-// Update the canvas setup and resize function
+// Update the canvas resize function
 function resizeCanvas() {
-    // Get the window dimensions
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
 
-    // Calculate the scaling factor to fit the game in the window
+    // Calculate the maximum scaling factor to fill the window while maintaining aspect ratio
     const scaleX = windowWidth / GAME_WIDTH;
     const scaleY = windowHeight / GAME_HEIGHT;
-    scale = Math.min(scaleX, scaleY);
+    scale = Math.max(scaleX, scaleY); // Changed to Math.max to fill the screen more
 
     // Set canvas size to maintain aspect ratio
     canvas.width = GAME_WIDTH;
@@ -112,9 +125,9 @@ function resizeCanvas() {
     canvas.style.left = `${offsetX}px`;
     canvas.style.top = `${offsetY}px`;
 
-    // Update camera dimensions
-    camera.width = GAME_WIDTH;
-    camera.height = GAME_HEIGHT;
+    canvas.style.imageRendering = 'pixelated';  // For Chrome
+    canvas.style.imageRendering = '-moz-crisp-edges';  // For Firefox
+    canvas.style.imageRendering = 'crisp-edges';  // For Safari
 }
 
 // Add resize event listener and initial resize
@@ -147,34 +160,62 @@ socket.on('players', (serverPlayers) => {
     players = serverPlayers;
 });
 
-// When receiving the map from the server
-socket.on('map', (map) => {
-    gameMap = map;
-});
+// Function to get tile source coordinates from tile ID
+function getTileSourcePosition(tileId) {
+    const id = parseInt(tileId);
+    return {
+        x: (id % SPRITESHEET_COLS) * TILE_SIZE,
+        y: Math.floor(id / SPRITESHEET_COLS) * TILE_SIZE
+    };
+}
 
-// Function to check collision with tiles
+// Update collision detection to use the new map data
 function checkTileCollision(x, y, width, height) {
-    // Convert player position to grid coordinates
+    if (!mapData) return { collision: false };
+    
+    // Find collision layer
+    const collisionLayer = mapData.layers.find(layer => layer.name === "collision");
+    if (!collisionLayer) return { collision: false };
+    
+    // Convert position to tile coordinates
     const left = Math.floor(x / TILE_SIZE);
     const right = Math.floor((x + width - 1) / TILE_SIZE);
     const top = Math.floor(y / TILE_SIZE);
     const bottom = Math.floor((y + height - 1) / TILE_SIZE);
     
-    // Check if any of these tiles are solid (1)
-    for (let row = top; row <= bottom; row++) {
-        for (let col = left; col <= right; col++) {
-            if (row >= 0 && row < gameMap.length && col >= 0 && col < gameMap[0].length) {
-                if (gameMap[row][col] === 1) {
-                    return {
-                        collision: true,
-                        tileX: col * TILE_SIZE,
-                        tileY: row * TILE_SIZE
-                    };
-                }
-            }
+    // Check collision tiles in the area
+    for (const tile of collisionLayer.tiles) {
+        if (tile.x >= left && tile.x <= right && tile.y >= top && tile.y <= bottom) {
+            return {
+                collision: true,
+                tileX: tile.x * TILE_SIZE,
+                tileY: tile.y * TILE_SIZE
+            };
         }
     }
+    
     return { collision: false };
+}
+
+// Add function to update player animation
+function updatePlayerAnimation() {
+    if (!playerIdleData) return;
+    
+    // Update frame counter
+    player.frameCounter++;
+    
+    // Change frame when counter reaches frameDuration
+    if (player.frameCounter >= player.frameDuration) {
+        player.frameCounter = 0;
+        player.animationFrame = (player.animationFrame + 1) % playerIdleData.layers[0].tiles.length;
+    }
+    
+    // Update player direction based on movement
+    if (player.velX < 0) {
+        player.facingLeft = true;
+    } else if (player.velX > 0) {
+        player.facingLeft = false;
+    }
 }
 
 // Update player position
@@ -197,8 +238,8 @@ function updatePlayer() {
         player.jumping = true;
     }
     
-    // Update horizontal position
-    let newX = player.x + player.velX;
+    // Update horizontal position with rounding
+    let newX = Math.round(player.x + player.velX);
     const horizontalCollision = checkTileCollision(newX, player.y, player.width, player.height);
     
     if (!horizontalCollision.collision) {
@@ -215,8 +256,8 @@ function updatePlayer() {
         player.velX = 0;
     }
     
-    // Update vertical position
-    let newY = player.y + player.velY;
+    // Update vertical position with rounding
+    let newY = Math.round(player.y + player.velY);
     const verticalCollision = checkTileCollision(player.x, newY, player.width, player.height);
     
     if (!verticalCollision.collision) {
@@ -235,6 +276,10 @@ function updatePlayer() {
         player.velY = 0;
     }
     
+    // Ensure final positions are integers
+    player.x = Math.round(player.x);
+    player.y = Math.round(player.y);
+    
     // Send updated position to server
     socket.emit('updatePlayer', {
         x: player.x,
@@ -243,15 +288,17 @@ function updatePlayer() {
         velY: player.velY,
         jumping: player.jumping
     });
+    
+    updatePlayerAnimation();
 }
 
-// Render game elements
+// Updated render function to use tilemap
 function render() {
-    // Clear the canvas with black bars
+    // Clear the canvas with sky color
     ctx.fillStyle = '#87CEEB';
     ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
     
-    // Draw the background image
+    // Draw background if loaded
     if (backgroundImage.complete) {
         const dimensions = calculateBackgroundCover(backgroundImage, GAME_WIDTH, GAME_HEIGHT);
         ctx.drawImage(
@@ -263,53 +310,114 @@ function render() {
         );
     }
     
-    // Update camera position to follow player
+    // Update camera position
     camera.update();
     
-    // Calculate which tiles are visible on screen
-    const startCol = Math.floor(camera.x / TILE_SIZE);
-    const endCol = Math.min(gameMap[0].length - 1, Math.ceil((camera.x + camera.width) / TILE_SIZE));
-    
-    const startRow = Math.floor(camera.y / TILE_SIZE);
-    const endRow = Math.min(gameMap.length - 1, Math.ceil((camera.y + camera.height) / TILE_SIZE));
-    
-    // Draw only the visible portion of the map
-    for (let row = startRow; row <= endRow; row++) {
-        for (let col = startCol; col <= endCol; col++) {
-            if (gameMap[row][col] === 1) {
-                ctx.fillStyle = 'black';
-                ctx.fillRect(
-                    col * TILE_SIZE - camera.x,
-                    row * TILE_SIZE - camera.y,
-                    TILE_SIZE,
-                    TILE_SIZE
-                );
-            }
-        }
+    // Only render if map data and tile atlas are loaded
+    if (mapData && tileAtlas.complete) {
+        // Disable image smoothing to prevent blurry tiles
+        ctx.imageSmoothingEnabled = false;
+        
+        // Round camera position to prevent sub-pixel rendering
+        const cameraX = Math.round(camera.x);
+        const cameraY = Math.round(camera.y);
+        
+        // Render each layer
+        mapData.layers.forEach(layer => {
+            layer.tiles.forEach(tile => {
+                // Calculate screen position and round to prevent sub-pixel rendering
+                const screenX = Math.round(tile.x * TILE_SIZE - cameraX);
+                const screenY = Math.round(tile.y * TILE_SIZE - cameraY);
+                
+                // Only render if tile is visible on screen
+                if (screenX > -TILE_SIZE && screenX < canvas.width &&
+                    screenY > -TILE_SIZE && screenY < canvas.height) {
+                    
+                    // Get source coordinates from tile ID
+                    const sourcePos = getTileSourcePosition(tile.id);
+                    
+                    // Draw the tile with integer coordinates
+                    ctx.drawImage(
+                        tileAtlas,
+                        sourcePos.x,
+                        sourcePos.y,
+                        TILE_SIZE,
+                        TILE_SIZE,
+                        screenX,
+                        screenY,
+                        TILE_SIZE,
+                        TILE_SIZE
+                    );
+                }
+            });
+        });
     }
     
-    // Draw other players
+    // Draw players with rounded coordinates
     for (const id in players) {
         if (id !== player.id) {
             const otherPlayer = players[id];
             ctx.fillStyle = 'blue';
             ctx.fillRect(
-                otherPlayer.x - camera.x,
-                otherPlayer.y - camera.y,
+                Math.round(otherPlayer.x - camera.x),
+                Math.round(otherPlayer.y - camera.y),
                 TILE_SIZE,
                 TILE_SIZE
             );
         }
     }
     
-    // Draw local player
-    ctx.fillStyle = player.color;
-    ctx.fillRect(
-        player.x - camera.x,
-        player.y - camera.y,
-        player.width,
-        player.height
-    );
+    // Draw local player with animation
+    if (playerIdleData && playerIdleAtlas.complete) {
+        // Set crisp pixel art rendering
+        ctx.imageSmoothingEnabled = false;
+        ctx.webkitImageSmoothingEnabled = false;
+        ctx.mozImageSmoothingEnabled = false;
+        ctx.msImageSmoothingEnabled = false;
+        
+        const frame = playerIdleData.layers[0].tiles[player.animationFrame];
+        const sourceX = parseInt(frame.id) * TILE_SIZE;
+        const sourceY = 0;
+        
+        // Save the current context state
+        ctx.save();
+        
+        // Position for the player sprite - ensure integer positions
+        const playerScreenX = Math.floor(player.x - camera.x);
+        const playerScreenY = Math.floor(player.y - camera.y);
+        
+        // If facing left, flip the sprite
+        if (player.facingLeft) {
+            ctx.scale(-1, 1);
+            ctx.drawImage(
+                playerIdleAtlas,
+                sourceX, sourceY,
+                TILE_SIZE, TILE_SIZE,
+                -playerScreenX - TILE_SIZE, playerScreenY,
+                TILE_SIZE, TILE_SIZE
+            );
+        } else {
+            ctx.drawImage(
+                playerIdleAtlas,
+                sourceX, sourceY,
+                TILE_SIZE, TILE_SIZE,
+                playerScreenX, playerScreenY,
+                TILE_SIZE, TILE_SIZE
+            );
+        }
+        
+        // Restore the context state
+        ctx.restore();
+    } else {
+        // Fallback to rectangle if images aren't loaded
+        ctx.fillStyle = player.color;
+        ctx.fillRect(
+            Math.round(player.x - camera.x),
+            Math.round(player.y - camera.y),
+            player.width,
+            player.height
+        );
+    }
 }
 
 // Game loop
