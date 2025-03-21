@@ -56,7 +56,7 @@ const player = {
     // Update animation properties
     animationFrame: 0,
     frameCounter: 0,
-    frameDuration: 11, // Increased from 8 to 15 to slow down the animation
+    frameDuration: 15, // Increased from 8 to 15 to slow down the animation
     facingLeft: false
 };
 
@@ -124,10 +124,6 @@ function resizeCanvas() {
     canvas.style.position = 'absolute';
     canvas.style.left = `${offsetX}px`;
     canvas.style.top = `${offsetY}px`;
-
-    canvas.style.imageRendering = 'pixelated';  // For Chrome
-    canvas.style.imageRendering = '-moz-crisp-edges';  // For Firefox
-    canvas.style.imageRendering = 'crisp-edges';  // For Safari
 }
 
 // Add resize event listener and initial resize
@@ -238,8 +234,8 @@ function updatePlayer() {
         player.jumping = true;
     }
     
-    // Update horizontal position with rounding
-    let newX = Math.round(player.x + player.velX);
+    // Update horizontal position
+    let newX = player.x + player.velX;
     const horizontalCollision = checkTileCollision(newX, player.y, player.width, player.height);
     
     if (!horizontalCollision.collision) {
@@ -256,8 +252,8 @@ function updatePlayer() {
         player.velX = 0;
     }
     
-    // Update vertical position with rounding
-    let newY = Math.round(player.y + player.velY);
+    // Update vertical position
+    let newY = player.y + player.velY;
     const verticalCollision = checkTileCollision(player.x, newY, player.width, player.height);
     
     if (!verticalCollision.collision) {
@@ -276,10 +272,6 @@ function updatePlayer() {
         player.velY = 0;
     }
     
-    // Ensure final positions are integers
-    player.x = Math.round(player.x);
-    player.y = Math.round(player.y);
-    
     // Send updated position to server
     socket.emit('updatePlayer', {
         x: player.x,
@@ -289,6 +281,7 @@ function updatePlayer() {
         jumping: player.jumping
     });
     
+    // Add this at the end
     updatePlayerAnimation();
 }
 
@@ -298,15 +291,21 @@ function render() {
     ctx.fillStyle = '#87CEEB';
     ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
     
+    // Disable image smoothing for the entire canvas
+    ctx.imageSmoothingEnabled = false;
+    ctx.webkitImageSmoothingEnabled = false;
+    ctx.mozImageSmoothingEnabled = false;
+    ctx.msImageSmoothingEnabled = false;
+    
     // Draw background if loaded
     if (backgroundImage.complete) {
         const dimensions = calculateBackgroundCover(backgroundImage, GAME_WIDTH, GAME_HEIGHT);
         ctx.drawImage(
             backgroundImage,
-            dimensions.x,
-            dimensions.y,
-            dimensions.width,
-            dimensions.height
+            Math.round(dimensions.x),
+            Math.round(dimensions.y),
+            Math.round(dimensions.width),
+            Math.round(dimensions.height)
         );
     }
     
@@ -369,12 +368,6 @@ function render() {
     
     // Draw local player with animation
     if (playerIdleData && playerIdleAtlas.complete) {
-        // Set crisp pixel art rendering
-        ctx.imageSmoothingEnabled = false;
-        ctx.webkitImageSmoothingEnabled = false;
-        ctx.mozImageSmoothingEnabled = false;
-        ctx.msImageSmoothingEnabled = false;
-        
         const frame = playerIdleData.layers[0].tiles[player.animationFrame];
         const sourceX = parseInt(frame.id) * TILE_SIZE;
         const sourceY = 0;
@@ -382,7 +375,7 @@ function render() {
         // Save the current context state
         ctx.save();
         
-        // Position for the player sprite - ensure integer positions
+        // Position for the player sprite - ensure whole numbers
         const playerScreenX = Math.floor(player.x - camera.x);
         const playerScreenY = Math.floor(player.y - camera.y);
         
@@ -391,7 +384,7 @@ function render() {
             ctx.scale(-1, 1);
             ctx.drawImage(
                 playerIdleAtlas,
-                sourceX, sourceY,
+                Math.floor(sourceX), Math.floor(sourceY),
                 TILE_SIZE, TILE_SIZE,
                 -playerScreenX - TILE_SIZE, playerScreenY,
                 TILE_SIZE, TILE_SIZE
@@ -399,7 +392,7 @@ function render() {
         } else {
             ctx.drawImage(
                 playerIdleAtlas,
-                sourceX, sourceY,
+                Math.floor(sourceX), Math.floor(sourceY),
                 TILE_SIZE, TILE_SIZE,
                 playerScreenX, playerScreenY,
                 TILE_SIZE, TILE_SIZE
