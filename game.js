@@ -11,20 +11,53 @@ const backgroundImage = new Image();
 backgroundImage.src = './assets/gamebg.png'; // Replace with your image path
 
 // New tilemap constants
-const SPRITESHEET_COLS = 8;
-const SPRITESHEET_ROWS = 6;
+let SPRITESHEET_COLS = 0;
+let SPRITESHEET_ROWS = 0;
+let MAP_WIDTH = 0;
+let MAP_HEIGHT = 0;
 
 // Load tilemap assets
 const tileAtlas = new Image();
-tileAtlas.src = './assets/spritesheet.png'; // Update with your spritesheet path
+tileAtlas.src = './assets/maps/level1/spritesheet.png'; // Update with your spritesheet path
 
 // Load and parse map data
 let mapData = null;
-fetch('./maps/map.json')
+fetch('./assets/maps/level1/map.json')
     .then(response => response.json())
     .then(data => {
         mapData = data;
-        console.log('Map data loaded successfully');
+        MAP_WIDTH = data.mapWidth;
+        MAP_HEIGHT = data.mapHeight;
+        
+        // Validate required layers exist
+        const decorationLayer = data.layers.find(l => l.name === "decoration");
+        const collisionLayer = data.layers.find(l => l.name === "collision");
+        
+        if (!decorationLayer || !collisionLayer) {
+            console.error('Missing required layers. Map must have "decoration" and "collision" layers.');
+            return;
+        }
+
+        // Convert all tile IDs to numbers
+        data.layers.forEach(layer => {
+            layer.tiles = layer.tiles.map(tile => ({
+                ...tile,
+                id: Number(tile.id),
+                x: Number(tile.x),
+                y: Number(tile.y)
+            }));
+        });
+
+        console.log('Map loaded successfully:', {
+            width: MAP_WIDTH,
+            height: MAP_HEIGHT,
+            decorationTiles: decorationLayer.tiles.length,
+            collisionTiles: collisionLayer.tiles.length
+        });
+        
+        // Position player at a good starting point
+        player.x = 100;
+        player.y = 100;
     })
     .catch(error => console.error('Error loading map:', error));
 
@@ -90,12 +123,12 @@ const camera = {
         this.x = Math.round(this.x + (this.targetX - this.x) * this.smoothness);
         this.y = Math.round(this.y + (this.targetY - this.y) * this.smoothness);
         
-        // Make sure the camera doesn't go outside the map boundaries using mapData
+        // Make sure the camera doesn't go outside the map boundaries
         if (mapData) {
-            const mapWidth = mapData.mapWidth * TILE_SIZE;
-            const mapHeight = mapData.mapHeight * TILE_SIZE;
-            this.x = Math.max(0, Math.min(this.x, mapWidth - this.width));
-            this.y = Math.max(0, Math.min(this.y, mapHeight - this.height));
+            const maxX = (MAP_WIDTH * TILE_SIZE) - this.width;
+            const maxY = (MAP_HEIGHT * TILE_SIZE) - this.height;
+            this.x = Math.max(0, Math.min(this.x, maxX));
+            this.y = Math.max(0, Math.min(this.y, maxY));
         }
     }
 };
@@ -156,29 +189,77 @@ socket.on('players', (serverPlayers) => {
     players = serverPlayers;
 });
 
-// Function to get tile source coordinates from tile ID
+// Update the tileAtlas loading to properly handle any size spritesheet
+tileAtlas.onload = function() {
+    SPRITESHEET_COLS = Math.floor(tileAtlas.width / TILE_SIZE);
+    SPRITESHEET_ROWS = Math.floor(tileAtlas.height / TILE_SIZE);
+    
+    console.log('Spritesheet loaded:', {
+        path: tileAtlas.src,
+        width: tileAtlas.width,
+        height: tileAtlas.height,
+        tileSize: TILE_SIZE,
+        cols: SPRITESHEET_COLS,
+        rows: SPRITESHEET_ROWS,
+        totalTiles: SPRITESHEET_COLS * SPRITESHEET_ROWS
+    });
+    
+    // Test a few tile IDs to verify mapping
+    console.log('Sample tile positions:');
+    for (let i = 0; i < 10; i++) {
+        const pos = getTileSourcePosition(i);
+        console.log(`Tile ID ${i} -> Position:`, pos);
+    }
+};
+
+// Add error handling for the spritesheet
+tileAtlas.onerror = function() {
+    console.error('Failed to load spritesheet:', tileAtlas.src);
+};
+
+// Update getTileSourcePosition function to correctly map tile IDs to spritesheet positions
 function getTileSourcePosition(tileId) {
-    const id = parseInt(tileId);
-    return {
-        x: (id % SPRITESHEET_COLS) * TILE_SIZE,
-        y: Math.floor(id / SPRITESHEET_COLS) * TILE_SIZE
-    };
+    // Ensure tileId is a number and valid
+    tileId = Number(tileId);
+    
+    // Check for invalid tile IDs
+    if (isNaN(tileId) || tileId < 0) {
+        console.warn('Invalid tile ID:', tileId);
+        return null;
+    }
+    
+    // Calculate position in spritesheet
+    // Note: We're not subtracting 1 from tileId anymore
+    const sourceX = (tileId % SPRITESHEET_COLS) * TILE_SIZE;
+    const sourceY = Math.floor(tileId / SPRITESHEET_COLS) * TILE_SIZE;
+    
+    // Debug log for troubleshooting
+    if (tileId < 5) { // Only log a few IDs to avoid console spam
+        console.log(`Tile ID ${tileId} maps to position:`, { sourceX, sourceY });
+    }
+    
+    return { x: sourceX, y: sourceY };
 }
 
-// Update collision detection to use the new map data
+// Update collision detection to be more efficient
 function checkTileCollision(x, y, width, height) {
     if (!mapData) return { collision: false };
-    
+
     // Find collision layer
     const collisionLayer = mapData.layers.find(layer => layer.name === "collision");
     if (!collisionLayer) return { collision: false };
-    
+
     // Convert position to tile coordinates
     const left = Math.floor(x / TILE_SIZE);
     const right = Math.floor((x + width - 1) / TILE_SIZE);
     const top = Math.floor(y / TILE_SIZE);
     const bottom = Math.floor((y + height - 1) / TILE_SIZE);
-    
+
+    // Check map boundaries
+    if (left < 0 || right >= MAP_WIDTH || top < 0 || bottom >= MAP_HEIGHT) {
+        return { collision: true };
+    }
+
     // Check collision tiles in the area
     for (const tile of collisionLayer.tiles) {
         if (tile.x >= left && tile.x <= right && tile.y >= top && tile.y <= bottom) {
@@ -189,7 +270,7 @@ function checkTileCollision(x, y, width, height) {
             };
         }
     }
-    
+
     return { collision: false };
 }
 
@@ -312,30 +393,38 @@ function render() {
     // Update camera position
     camera.update();
     
-    // Only render if map data and tile atlas are loaded
-    if (mapData && tileAtlas.complete) {
-        // Disable image smoothing to prevent blurry tiles
-        ctx.imageSmoothingEnabled = false;
-        
-        // Round camera position to prevent sub-pixel rendering
+    // Only render if all assets are loaded
+    if (mapData && tileAtlas.complete && SPRITESHEET_COLS > 0) {
         const cameraX = Math.round(camera.x);
         const cameraY = Math.round(camera.y);
-        
-        // Render each layer
+
+        // Render each layer in order (decoration first, then collision)
         mapData.layers.forEach(layer => {
+            // Skip rendering if layer has no tiles
+            if (!Array.isArray(layer.tiles) || layer.tiles.length === 0) return;
+
+            // Process each tile in the layer
             layer.tiles.forEach(tile => {
-                // Calculate screen position and round to prevent sub-pixel rendering
-                const screenX = Math.round(tile.x * TILE_SIZE - cameraX);
-                const screenY = Math.round(tile.y * TILE_SIZE - cameraY);
+                // Convert to numbers if they're strings
+                const tileId = Number(tile.id);
+                const tileX = Number(tile.x);
+                const tileY = Number(tile.y);
                 
-                // Only render if tile is visible on screen
-                if (screenX > -TILE_SIZE && screenX < canvas.width &&
-                    screenY > -TILE_SIZE && screenY < canvas.height) {
-                    
-                    // Get source coordinates from tile ID
-                    const sourcePos = getTileSourcePosition(tile.id);
-                    
-                    // Draw the tile with integer coordinates
+                // Calculate screen position
+                const screenX = Math.round(tileX * TILE_SIZE - cameraX);
+                const screenY = Math.round(tileY * TILE_SIZE - cameraY);
+                
+                // Skip if off screen
+                if (screenX < -TILE_SIZE || screenX > canvas.width ||
+                    screenY < -TILE_SIZE || screenY > canvas.height) {
+                    return;
+                }
+                
+                // Get source coordinates from tile ID
+                const sourcePos = getTileSourcePosition(tileId);
+                if (!sourcePos) return; // Skip if no valid source position
+                
+                try {
                     ctx.drawImage(
                         tileAtlas,
                         sourcePos.x,
@@ -347,6 +436,13 @@ function render() {
                         TILE_SIZE,
                         TILE_SIZE
                     );
+                } catch (error) {
+                    console.error('Error drawing tile:', {
+                        id: tileId,
+                        position: { x: tileX, y: tileY },
+                        sourcePos,
+                        error: error.message
+                    });
                 }
             });
         });
